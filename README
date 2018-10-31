@@ -1,0 +1,27 @@
+This project is licensed under the terms of the MIT license.
+
+Author: Mason Morales
+Date: October 20, 2018
+
+To use this TA, you must configure the log_path in your ansible.cfg. The path MUST be readable by Splunk. For example:
+
+[defaults]
+log_path=/var/log/ansible.log
+
+Additionally, if you are running splunk as a non-privileged user (which you should be), be sure to give the splunk user access to /var/log/ansible.log and add a post-rotate script to ensure splunk's file ACL permissions persist after the file is rotated by logrotate. Examples below. Note that in the post-rotate script, we are giving the splunk user access to all of /var/log. You can be more restrictive than this if needed in your environment, but this makes it easy for Splunk to read other log files on the system as well.
+
+sudo touch /etc/logrotate.d/splunk_facls
+sudo echo "{" | sudo tee --append /etc/logrotate.d/splunk_facls
+sudo echo "    postrotate" | sudo tee --append /etc/logrotate.d/splunk_facls
+sudo echo "        /usr/bin/setfacl -m u:splunk:rx -R /var/log/" | sudo tee --append /etc/logrotate.d/splunk_facls
+sudo echo "    endscript" | sudo tee --append /etc/logrotate.d/splunk_facls
+sudo echo "}" | sudo tee --append /etc/logrotate.d/splunk_facls
+# Force the splunk_facls logscript to run once now to update FACL permissions. It will automatically run after logrotate in the future.
+sudo logrotate -vf /etc/logrotate.d/splunk_facls
+
+Note: You should now have the following file in /etc/logrotate.d/splunk_facls
+{
+    postrotate
+        /usr/bin/setfacl -m u:splunk:rx -R /var/log/
+    endscript
+}
